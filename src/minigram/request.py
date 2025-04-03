@@ -8,6 +8,20 @@ import urllib.request
 from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
+
+def sync_req(url: str, data: Optional[dict] = None) -> Tuple[int, dict]:
+    headers = {"content-type": "application/json"}
+    try:
+        ssl_context = ssl._create_unverified_context()
+        req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
+        with urllib.request.urlopen(req, timeout=180, context=ssl_context) as response:
+            status_code = response.getcode()
+            response_data = response.read()
+            return status_code, json.loads(response_data.decode("utf-8"))
+    except urllib.error.URLError as e:
+        return int(e.errno) if e.errno else 200, {"result": e.reason}
+
+
 if importlib.util.find_spec("aiohttp"):
     import aiohttp
 
@@ -100,15 +114,3 @@ else:
 
         response_json = json.loads(response_data.decode("utf-8"))
         return status_code, response_json
-
-    def sync_req(url: str, data: Optional[dict] = None) -> Tuple[int, dict]:
-        headers = {"content-type": "application/json"}
-        try:
-            ssl_context = ssl._create_unverified_context()
-            req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
-            with urllib.request.urlopen(req, timeout=180, context=ssl_context) as response:
-                status_code = response.getcode()
-                response_data = response.read()
-                return status_code, json.loads(response_data.decode("utf-8"))
-        except urllib.error.URLError as e:
-            return int(e.errno) if e.errno else 200, {"result": e.reason}
